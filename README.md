@@ -1,12 +1,10 @@
 <div align="center">
   <h1>Awesome Remote Control</h1>
-  <p>An <a href="https://github.com/openclaw/openclaw">OpenClaw</a> skill for launching headless Claude Code sessions.<br>Remote control URLs, automatic idle timeout, and push notifications to any channel.</p>
+  <p>An <a href="https://github.com/openclaw/openclaw">OpenClaw</a> skill for launching headless Claude Code sessions.<br>Remote control URLs and automatic idle timeout.</p>
   <p>
     <a href="#install"><strong>Install</strong></a>
     ·
     <a href="#usage"><strong>Usage</strong></a>
-    ·
-    <a href="#notifications"><strong>Notifications</strong></a>
     ·
     <a href="#how-it-works"><strong>How It Works</strong></a>
   </p>
@@ -31,7 +29,7 @@ Or clone manually:
 git clone https://github.com/oobagi/awesome-remote-control.git ~/.openclaw/skills/claude-remote-control
 ```
 
-Requires `tmux` and `python3`. Notifications require [`openclaw`](https://github.com/openclaw/openclaw).
+Requires `tmux` and `python3`.
 
 Start a new session and the skill is available automatically.
 
@@ -41,7 +39,7 @@ Ask your agent:
 
 > "Start a remote session for my-project"
 
-> "Spin up 3 Claude sessions with Discord notifications to my-channel"
+> "Spin up 3 Claude sessions for my-project"
 
 > "Send a task to Fox: do an analysis of the codebase"
 
@@ -50,14 +48,6 @@ Ask your agent:
 > "Stop the Fox session"
 
 Each session gets a unique name like `🦊 Fox | my-project`, a remote control URL, and auto-exits after 30 minutes idle. Sessions can be resumed by UUID after shutdown.
-
-## Notifications
-
-Get pinged when a session finishes its task or shuts down. Works with any [openclaw-supported channel](https://docs.openclaw.ai/cli) — Discord, Telegram, Slack, etc.
-
-> "Start a remote session for my-project and notify me on Discord in my-channel"
-
-Uses Claude Code's native hook system. No polling, no cron jobs.
 
 ## Scripts
 
@@ -68,10 +58,8 @@ Uses Claude Code's native hook system. No polling, no cron jobs.
 | `send_task.sh` | Send a task to a running session |
 | `stop_session.sh` | Stop a session by name |
 | `list_sessions.sh` | List active/dead sessions |
-| `install_hooks.sh` | Install notification hooks |
-| `notify.sh` | Send a notification manually |
 
-Shared internals: `registry.py` (session registry), `on_stop.sh` / `on_session_end.sh` (hook handlers).
+Shared internals: `registry.py` (session registry), `on_session_end.sh` (hook handler).
 
 ## How It Works
 
@@ -80,7 +68,6 @@ Sessions launch with `--dangerously-skip-permissions --remote-control` and `CLAU
 **What this skill modifies on your system:**
 
 - **`~/.claude.json`** — sets `hasTrustDialogAccepted: true` for the target project directory so headless sessions skip the workspace trust prompt
-- **`<project>/.claude/settings.json`** — installs `Notification` and `SessionEnd` hooks when `--notify` is used
 - **`~/.local/share/claude-rc/sessions.json`** — registry of active/dead sessions with captured UUIDs
 - **`~/.claude/projects/`** — reads `.jsonl` files to capture session UUIDs on shutdown
 

@@ -2,13 +2,11 @@
 # Start a Claude Code remote control session in tmux with bypass permissions.
 # Supports multiple concurrent sessions — each gets a friendly animal name.
 #
-# Usage: start_session.sh <working-dir> [--resume [uuid]] [--notify <channel> <target>]
+# Usage: start_session.sh <working-dir> [--resume [uuid]]
 
-WORKDIR="${1:?Usage: start_session.sh <working-dir> [--resume [uuid]] [--notify <channel> <target>]}"
+WORKDIR="${1:?Usage: start_session.sh <working-dir> [--resume [uuid]]}"
 RESUME=""
 RESUME_UUID=""
-NOTIFY_CHANNEL=""
-NOTIFY_TARGET=""
 
 shift 2>/dev/null || true
 while [[ $# -gt 0 ]]; do
@@ -20,14 +18,6 @@ while [[ $# -gt 0 ]]; do
       if [[ -n "${1:-}" && ! "$1" =~ ^-- ]]; then
         RESUME_UUID="$1"; shift
       fi
-      ;;
-    --notify)
-      # Validate both args exist (#2)
-      if [[ -z "${2:-}" || -z "${3:-}" ]]; then
-        echo "Error: --notify requires <channel> and <target> arguments." >&2
-        exit 1
-      fi
-      NOTIFY_CHANNEL="$2"; NOTIFY_TARGET="$3"; shift 3
       ;;
     *) shift ;;
   esac
@@ -64,12 +54,6 @@ python3 "$SCRIPT_DIR/registry.py" prune
 
 # ── Pre-trust workspace with flock (#5) ──────────────────────────────────────
 python3 "$SCRIPT_DIR/registry.py" trust-workspace "$WORKDIR"
-
-# ── Install notification hooks (if --notify was given) ───────────────────────
-
-if [[ -n "$NOTIFY_CHANNEL" ]]; then
-  bash "$SCRIPT_DIR/install_hooks.sh" "$WORKDIR" "$NOTIFY_CHANNEL" "$NOTIFY_TARGET"
-fi
 
 # ── Derive dir basename — sanitised to safe chars (#9) ───────────────────────
 
@@ -136,7 +120,7 @@ echo "Starting session: $SESSION_LABEL  (tmux: $TMUX_NAME)"
 # CLAUDE_CODE_EXIT_AFTER_STOP_DELAY makes Claude auto-exit after being idle at
 # the prompt for IDLE_TIMEOUT. This is the primary idle-kill mechanism — Claude
 # handles the timer internally and fires SessionEnd on exit (which triggers
-# on_session_end.sh for notification + registry update).
+# on_session_end.sh for registry update).
 
 IDLE_DELAY_MS=$((IDLE_TIMEOUT * 1000))
 
@@ -180,5 +164,4 @@ echo "   local UUID: <capturing in background>"
 echo "   resume:     claude -r \"<uuid>\" --dangerously-skip-permissions --remote-control"
 echo "   tmux:       tmux attach -t $TMUX_NAME"
 echo "   State:      $HOME/.local/share/claude-rc/sessions.json"
-[[ -n "$NOTIFY_CHANNEL" ]] && echo "   notify:     $NOTIFY_CHANNEL → $NOTIFY_TARGET"
 echo "   Auto-closes after ${IDLE_MINS}m idle."

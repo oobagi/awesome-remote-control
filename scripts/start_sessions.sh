@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Start N Claude Code remote control sessions in parallel.
-# Usage: start_sessions.sh [dir] [count] [--notify <channel> <target>]
+# Usage: start_sessions.sh <working-dir> <count> [--resume [uuid]]
 #
-# Example: start_sessions.sh /path/to/project 3 --notify discord my-channel
+# Example: start_sessions.sh /path/to/project 3
 
-WORKDIR="${1:?Usage: start_sessions.sh <working-dir> <count> [--notify <channel> <target>]}"
+WORKDIR="${1:?Usage: start_sessions.sh <working-dir> <count> [--resume [uuid]]}"
 COUNT="${2:-3}"
 shift 2 2>/dev/null || true
-EXTRA_ARGS=("$@")  # pass through --notify, --resume, etc.
+EXTRA_ARGS=("$@")  # pass through --resume, etc.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Validate count is a positive integer (#3)
