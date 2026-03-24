@@ -43,9 +43,13 @@ Ask your agent:
 
 > "Spin up 3 Claude sessions with Discord notifications to my-channel"
 
+> "Send a task to Fox: do an analysis of the codebase"
+
 > "List my remote sessions"
 
-Each session gets a unique name like `🦊 Fox | my-project`, a remote control URL, and auto-exits after 30 minutes idle.
+> "Stop the Fox session"
+
+Each session gets a unique name like `🦊 Fox | my-project`, a remote control URL, and auto-exits after 30 minutes idle. Sessions can be resumed by UUID after shutdown.
 
 ## Notifications
 
@@ -54,6 +58,20 @@ Get pinged when a session finishes its task or shuts down. Works with any [openc
 > "Start a remote session for my-project and notify me on Discord in my-channel"
 
 Uses Claude Code's native hook system. No polling, no cron jobs.
+
+## Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `start_session.sh` | Launch a single session |
+| `start_sessions.sh` | Launch N sessions in parallel |
+| `send_task.sh` | Send a task to a running session |
+| `stop_session.sh` | Stop a session by name |
+| `list_sessions.sh` | List active/dead sessions |
+| `install_hooks.sh` | Install notification hooks |
+| `notify.sh` | Send a notification manually |
+
+Shared internals: `registry.py` (session registry), `on_stop.sh` / `on_session_end.sh` (hook handlers).
 
 ## How It Works
 

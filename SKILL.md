@@ -58,15 +58,6 @@ Registry stored at `~/.local/share/claude-rc/sessions.json`.
 tmux attach -t cc-fox-my-project   # use tmux name shown on start
 ```
 
-## Killing a Session
-
-```bash
-bash skills/claude-remote-control/scripts/stop_session.sh <session-label|tmux-name>
-# or directly: tmux kill-session -t <tmux-name>
-```
-
-The `SessionEnd` hook fires (notifying via `--notify` channel if configured) and marks the registry entry `dead` with UUID capture.
-
 ## Resuming a Session by UUID
 
 When a session dies (killed or idle timeout), the registry entry is marked `dead` and the local UUID is captured at that moment. UUIDs persist for 30 days before being pruned.
