@@ -22,7 +22,7 @@
 ## Install
 
 ```bash
-clawhub install claude-remote-control
+clawhub install awesome-remote-control
 ```
 
 Or clone manually:

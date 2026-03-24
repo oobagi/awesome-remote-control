@@ -39,7 +39,10 @@ case "$EVENT" in
     ;;
 esac
 
-openclaw message send \
+# Send notification with fallback stderr warning (#19)
+if ! openclaw message send \
   --channel "$CHANNEL" \
   --target "$TARGET" \
-  --message "$EMOJI $MSG"
+  --message "$EMOJI $MSG" 2>&1; then
+  echo "Warning: failed to send notification via $CHANNEL to $TARGET" >&2
+fi

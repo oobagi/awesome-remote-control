@@ -32,6 +32,18 @@ bash skills/claude-remote-control/scripts/start_sessions.sh <dir> <count> [--not
 
 Each session gets a friendly name like `🦊 Fox | my-project` — used in tmux and the registry.
 
+**Important:** After launching a session, always report the session URL (`https://claude.ai/code/session_...`) back to the user in your reply. The URL is printed in the script output — surface it so the user can open the remote control page immediately.
+
+## Stopping a Session
+
+```bash
+bash skills/claude-remote-control/scripts/stop_session.sh <session-label|tmux-name>
+# e.g. stop_session.sh "🦊 Fox | my-project"
+#      stop_session.sh cc-fox-my-project
+```
+
+The `SessionEnd` hook fires automatically, handling notification and registry update.
+
 ## Listing Sessions
 
 ```bash
@@ -49,7 +61,8 @@ tmux attach -t cc-fox-my-project   # use tmux name shown on start
 ## Killing a Session
 
 ```bash
-tmux kill-session -t <tmux-name>
+bash skills/claude-remote-control/scripts/stop_session.sh <session-label|tmux-name>
+# or directly: tmux kill-session -t <tmux-name>
 ```
 
 The `SessionEnd` hook fires (notifying via `--notify` channel if configured) and marks the registry entry `dead` with UUID capture.
@@ -63,12 +76,16 @@ Look up the UUID:
 cat ~/.local/share/claude-rc/sessions.json
 ```
 
-Resume in a new tmux session (`<dirbase>` is the basename, e.g. `my-project`, not the full path):
+Resume using the start script with `--resume <uuid>`:
+```bash
+bash skills/claude-remote-control/scripts/start_session.sh <dir> --resume <uuid>
+# e.g. start_session.sh /path/to/project --resume abc123-def456
+```
+
+Or manually in a new tmux session:
 ```bash
 tmux new-session -d -s "cc-<animal>-<dirbase>" -c "/full/path/to/project"
 tmux send-keys -t "cc-<animal>-<dirbase>" 'claude -r "<uuid>" --dangerously-skip-permissions --remote-control --name "<animal> | <dirbase>"' Enter
-# e.g.: tmux new-session -d -s "cc-fox-my-project" -c "/path/to/project"
-#        tmux send-keys -t "cc-fox-my-project" 'claude -r "abc123..." --dangerously-skip-permissions --remote-control --name "Fox | my-project"' Enter
 ```
 
 This restores full conversation history. A new remote control URL is issued on reconnect.
@@ -104,10 +121,14 @@ No background watcher process — everything is driven by Claude Code's native h
 
 The `Notification` (idle_prompt) hook fires earlier — the moment Claude goes idle — for an immediate "task done" ping. The `SessionEnd` hook fires later when the session actually terminates.
 
+## Dispatching Tasks to Running Sessions
+
+When sending follow-up tasks to a session that already has context (e.g., it just finished an analysis), do NOT re-paste the full spec or issue list. The agent already has that context in its conversation. Just reference it briefly — e.g., "fix the issues you identified" or "implement the plan above". Re-sending large specs bloats context unnecessarily and wastes tokens.
+
 ## Notes
 
+- After launching, **always report the session URL** (`https://claude.ai/code/session_...`) to the user — this is the remote control link they need
 - `--remote-control` is undocumented but valid — activates remote control on startup
-- Session URL looks like `https://claude.ai/code/session_...` — report this to the user
 - The `session_0...` URL is a cloud-side remote control ID — it cannot be used with `claude -r`. Only the local UUID from the registry works for resuming.
 - UUID is captured lazily when the session dies, not during startup — no background polling
 - Dead entries auto-prune after 30 days (runs at each startup)

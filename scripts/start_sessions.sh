@@ -10,6 +10,12 @@ shift 2 2>/dev/null || true
 EXTRA_ARGS=("$@")  # pass through --notify, --resume, etc.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Validate count is a positive integer (#3)
+if ! [[ "$COUNT" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Error: count must be a positive integer, got '$COUNT'" >&2
+  exit 1
+fi
+
 echo "🚀 Starting $COUNT sessions in parallel for: $WORKDIR"
 echo ""
 
@@ -22,9 +28,10 @@ for i in $(seq 1 "$COUNT"); do
   PIDS+=($!)
 done
 
-# Wait for all to complete
+# Wait for all to complete, tracking failures (#25)
+FAILURES=0
 for pid in "${PIDS[@]}"; do
-  wait "$pid"
+  wait "$pid" || ((FAILURES++))
 done
 
 # Print all outputs in order
@@ -33,4 +40,15 @@ for i in $(seq 1 "$COUNT"); do
   echo ""
 done
 
+# Print summary of session URLs in easy-to-copy format
+echo "────────────────────────────────────────"
+echo "Session URLs:"
+grep -rh 'URL:' "$OUTDIR"/ 2>/dev/null | sed 's/.*URL: */  /' | grep -v '<not captured'
+echo "────────────────────────────────────────"
+
 rm -rf "$OUTDIR"
+
+if [[ $FAILURES -gt 0 ]]; then
+  echo "⚠️  $FAILURES of $COUNT sessions failed to start." >&2
+  exit 1
+fi

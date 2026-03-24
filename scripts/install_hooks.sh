@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Install Claude Code hooks for ping-when-done notifications.
 #
-# Writes Notification (idle_prompt) and SessionEnd hooks into
-# the project-level .claude/settings.json so that remote sessions
-# notify a channel when they go idle or end.
+# Merges Notification (idle_prompt) and SessionEnd hooks into
+# the project-level .claude/settings.json.  Existing hooks that
+# are not related to remote-control are preserved (#13).
 #
 # Usage: install_hooks.sh <project-dir> <channel> <target>
 #
@@ -27,9 +27,7 @@ mkdir -p "$SETTINGS_DIR"
 RC_SETTINGS="$SETTINGS_FILE" RC_NOTIFY="$NOTIFY_SCRIPT" \
 RC_SESSION_END="$SESSION_END_SCRIPT" RC_CHANNEL="$CHANNEL" RC_TARGET="$TARGET" \
 python3 - <<'PYEOF'
-import json, os
-
-import re, sys
+import json, os, re, sys
 
 settings_path = os.environ["RC_SETTINGS"]
 notify_script = os.environ["RC_NOTIFY"]
@@ -48,41 +46,73 @@ if not SAFE.match(target):
     sys.exit(1)
 
 try:
-    settings = json.load(open(settings_path))
-except (FileNotFoundError, json.JSONDecodeError):
+    with open(settings_path) as f:
+        settings = json.load(f)
+except FileNotFoundError:
+    settings = {}
+except json.JSONDecodeError:
+    print(f"Warning: corrupt {settings_path}, resetting", file=sys.stderr)
     settings = {}
 
 hooks = settings.setdefault("hooks", {})
 
-# Notification hook — fires when Claude goes idle (waiting for input)
-hooks["Notification"] = [
-    {
-        "matcher": "idle_prompt",
-        "hooks": [
-            {
-                "type": "command",
-                "command": f'bash {notify_script} {channel} "{target}" "$CLAUDE_SESSION_NAME" idle',
-                "timeout": 15,
-            }
-        ],
-    }
-]
+# ── Helper: merge a hook entry without clobbering unrelated hooks (#13) ──
 
-# SessionEnd hook — fires once when the session terminates.
-# Calls on_session_end.sh which both notifies and marks the registry dead.
-hooks["SessionEnd"] = [
-    {
-        "hooks": [
-            {
-                "type": "command",
-                "command": f'bash {session_end_script} {channel} "{target}" "$CLAUDE_SESSION_NAME"',
-                "timeout": 30,
-            }
-        ],
-    }
-]
+def merge_hook(hook_type, marker_script, new_entry):
+    """Replace any existing entry whose command references marker_script,
+    preserving all other entries under the same hook type."""
+    existing = hooks.get(hook_type, [])
+    # Keep entries that are NOT from this skill
+    kept = []
+    for group in existing:
+        filtered_hooks = [
+            h for h in group.get("hooks", [])
+            if marker_script not in h.get("command", "")
+        ]
+        if filtered_hooks:
+            group["hooks"] = filtered_hooks
+            kept.append(group)
+    kept.append(new_entry)
+    hooks[hook_type] = kept
 
-json.dump(settings, open(settings_path, "w"), indent=2)
+# Use shell-safe quoting for CLAUDE_SESSION_NAME (#10).
+# The variable is expanded by the hook runner's shell at execution time;
+# wrapping it in double quotes prevents word-splitting on special chars.
+notify_entry = {
+    "matcher": "idle_prompt",
+    "hooks": [
+        {
+            "type": "command",
+            "command": (
+                f'bash {notify_script} {channel} '
+                f"'{target}' "
+                f'"$CLAUDE_SESSION_NAME" idle'
+            ),
+            "timeout": 15,
+        }
+    ],
+}
+
+session_end_entry = {
+    "hooks": [
+        {
+            "type": "command",
+            "command": (
+                f'bash {session_end_script} {channel} '
+                f"'{target}' "
+                f'"$CLAUDE_SESSION_NAME"'
+            ),
+            "timeout": 30,
+        }
+    ],
+}
+
+merge_hook("Notification", "notify.sh", notify_entry)
+merge_hook("SessionEnd", "on_session_end.sh", session_end_entry)
+
+with open(settings_path, "w") as f:
+    json.dump(settings, f, indent=2)
+
 print(f"Hooks installed in {settings_path}")
 print(f"  Notification (idle_prompt) -> {channel}:{target}")
 print(f"  SessionEnd                 -> {channel}:{target} (+ registry update)")
