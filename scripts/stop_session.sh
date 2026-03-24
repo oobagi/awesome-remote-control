@@ -7,8 +7,8 @@
 #   stop_session.sh "🦊 Fox | my-project"    # by session label
 #   stop_session.sh cc-fox-my-project          # by tmux name
 #
-# Killing the tmux session triggers the SessionEnd hook, which handles
-# notification and marking the registry entry dead automatically.
+# Killing the tmux session triggers the SessionEnd hook, which marks
+# the registry entry dead automatically.
 
 NAME="${1:?Usage: stop_session.sh <session-label|tmux-name>}"
 
@@ -31,4 +31,4 @@ fi
 
 echo "Stopping session: $TMUX_NAME"
 tmux kill-session -t "$TMUX_NAME"
-echo "Session stopped. SessionEnd hook will handle notification and registry update."
+echo "Session stopped. SessionEnd hook will handle registry update."
