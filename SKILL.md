@@ -121,9 +121,23 @@ No background watcher process — everything is driven by Claude Code's native h
 
 The `Notification` (idle_prompt) hook fires earlier — the moment Claude goes idle — for an immediate "task done" ping. The `SessionEnd` hook fires later when the session actually terminates.
 
-## Dispatching Tasks to Running Sessions
+## Sending Tasks to Running Sessions
 
-When sending follow-up tasks to a session that already has context (e.g., it just finished an analysis), do NOT re-paste the full spec or issue list. The agent already has that context in its conversation. Just reference it briefly — e.g., "fix the issues you identified" or "implement the plan above". Re-sending large specs bloats context unnecessarily and wastes tokens.
+**Always use `send_task.sh` to dispatch messages to running sessions.** Do NOT use raw `tmux send-keys` — it skips the `[openclaw]` tag, which breaks the callback loop.
+
+```bash
+bash skills/claude-remote-control/scripts/send_task.sh <session-label|tmux-name> "<message>"
+# e.g. send_task.sh "🦊 Fox | my-project" "Do an analysis of the codebase"
+#      send_task.sh cc-fox-my-project "Fix the issues you identified"
+```
+
+The script:
+1. Resolves the tmux session name from a label or direct tmux name
+2. Verifies the session is alive
+3. Prepends the `[openclaw]` tag automatically (so `on_stop.sh` fires the callback when Claude finishes)
+4. Sends via `tmux send-keys -l` (literal mode — safe for special characters) + `Enter`
+
+**Tip:** When sending follow-up tasks to a session that already has context (e.g., it just finished an analysis), do NOT re-paste the full spec or issue list. The agent already has that in its conversation. Just reference it — e.g., "fix the issues you identified". Re-sending bloats context and wastes tokens.
 
 ## Notes
 
