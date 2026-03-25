@@ -138,6 +138,12 @@ def cmd_mark_dead(name):
                         ".jsonl", ""
                     )
                 )
+            else:
+                print(
+                    f"Warning: could not capture UUID for '{name}' "
+                    f"— no matching .jsonl files in {proj_dir}",
+                    file=sys.stderr,
+                )
         _save(REGISTRY, r)
 
     _with_lock(REGISTRY_LOCK, _do)

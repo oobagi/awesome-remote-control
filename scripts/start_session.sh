@@ -99,9 +99,9 @@ MAX_NAME_ATTEMPTS=60
   echo "$TMUX_NAME" >> "$STATE_DIR/.name_$$"
 
 ) 8>"$NAME_LOCK"
+subshell_rc=$?
 
-# Check if subshell failed (#1, #18)
-if [[ $? -ne 0 ]]; then
+if [[ $subshell_rc -ne 0 ]]; then
   exit 1
 fi
 
@@ -115,6 +115,14 @@ fi
 rm -f "$STATE_DIR/.name_$$"
 
 echo "Starting session: $SESSION_LABEL  (tmux: $TMUX_NAME)"
+
+# ── Cleanup trap: kill orphaned tmux session if interrupted during setup ─────
+cleanup_session() {
+  echo "Interrupted — killing unregistered tmux session $TMUX_NAME" >&2
+  tmux kill-session -t "$TMUX_NAME" 2>/dev/null || true
+  exit 130
+}
+trap cleanup_session INT TERM
 
 # ── Start claude in tmux ─────────────────────────────────────────────────────
 # CLAUDE_CODE_EXIT_AFTER_STOP_DELAY makes Claude auto-exit after being idle at
@@ -154,6 +162,9 @@ done
 
 # Register session (UUID filled in by on_session_end.sh when session stops)
 python3 "$SCRIPT_DIR/registry.py" add "$SESSION_LABEL" "${URL:-}" "$WORKDIR" ""
+
+# Session is now registered — disarm the cleanup trap
+trap - INT TERM
 
 IDLE_MINS=$((IDLE_TIMEOUT / 60))
 
