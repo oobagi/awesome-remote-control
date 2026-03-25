@@ -16,6 +16,14 @@ if ! [[ "$COUNT" =~ ^[1-9][0-9]*$ ]]; then
   exit 1
 fi
 
+# Reject --resume with multiple sessions — all N would fight over the same UUID
+for arg in "${EXTRA_ARGS[@]}"; do
+  if [[ "$arg" == "--resume" && "$COUNT" -gt 1 ]]; then
+    echo "Error: --resume cannot be used with count > 1 (all sessions would resume the same UUID)." >&2
+    exit 1
+  fi
+done
+
 echo "🚀 Starting $COUNT sessions in parallel for: $WORKDIR"
 echo ""
 

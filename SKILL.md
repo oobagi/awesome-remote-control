@@ -67,8 +67,8 @@ bash skills/claude-remote-control/scripts/start_session.sh <dir> --resume <uuid>
 
 Or manually in a new tmux session:
 ```bash
-tmux new-session -d -s "cc-<animal>-<dirbase>" -c "/full/path/to/project"
-tmux send-keys -t "cc-<animal>-<dirbase>" 'claude -r "<uuid>" --dangerously-skip-permissions --remote-control --name "<animal> | <dirbase>"' Enter
+tmux new-session -d -s "cc-fox-my-project" -c "/full/path/to/my-project"
+tmux send-keys -t "cc-fox-my-project" 'claude -r "<uuid>" --dangerously-skip-permissions --remote-control --name "🦊 Fox | my-project"' Enter
 ```
 
 This restores full conversation history. A new remote control URL is issued on reconnect.

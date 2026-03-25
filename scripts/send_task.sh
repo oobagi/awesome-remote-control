@@ -49,6 +49,10 @@ fi
 # special characters in the message, then send Enter separately.
 
 tmux send-keys -t "$TMUX_NAME" -l "$MESSAGE"
+# Brief pause so Claude's TUI finishes processing the bracketed paste before
+# we send Enter — without this, Enter can fire before the paste buffer is
+# flushed and get swallowed.
+sleep 0.15
 tmux send-keys -t "$TMUX_NAME" Enter
 
 echo "Task sent to $TMUX_NAME"
