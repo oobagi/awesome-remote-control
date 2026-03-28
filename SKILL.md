@@ -1,5 +1,5 @@
 ---
-name: claude-remote-control
+name: awesome-remote-control
 description: Start a Claude Code remote control session in tmux with bypass permissions. Use when asked to start a remote session, start a Claude Code session, spin up Claude Code, or any variation of starting Claude Code remotely for a project. Multiple sessions can run simultaneously.
 metadata:
   {"openclaw": {"requires": {"bins": ["tmux", "python3", "claude"]}}}
